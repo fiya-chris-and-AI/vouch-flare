@@ -36,13 +36,32 @@ The core loop (persona → request → enclave → signed → on-chain → borro
 
 FXRP token (`FTestXRP`, 6 decimals): [`0x0b6a3645c240605887a5532109323a3e12273dc7`](https://coston2-explorer.flare.network/address/0x0b6a3645c240605887a5532109323a3e12273dc7)
 
-## Was echt ist und was simuliert/kuratiert ist
+## What is real, what is simulated, what is curated
 
-- **Echt:** the smart contracts, the signature verification and hash-gate, the FXRP pool (real unsecured borrow/repay transactions on Coston2), the live FTSOv2 price read, and the deterministic rule engine (byte-for-byte identical Go and TypeScript implementations).
-- **Simuliert:** the hardware attestation step. Flare's own scaffold supports `SIMULATED_TEE=true` for exactly this purpose. The real end-to-end FCC/FTDC dispatch path is currently blocked by an upstream availability-check timeout (`/action/result` returns 404 after a successful dispatch) — this affects the provider side, not our code, and multiple teams building on FCC hit the same issue during this event. Instead of blocking on it, underwriting results are produced by a same-mechanism fallback (`extension/tools/cmd/mock-tee`, ported to `frontend/lib/rules.ts` + `frontend/lib/sign.ts` for the deployed app) — identical rule engine, identical signature scheme, judged identically by the on-chain hash-gate. The UI labels this explicitly wherever it's relevant.
-- **Kuratiert:** the demo data source (`extension/demo-data/personas.json`) is three curated financial histories, not a real bank connection. Labeled as such in the UI.
+**Real first — all of this is live on Coston2, every claim one explorer click away:**
 
-## KI-Nutzung
+- **Real.** A real unsecured borrow (`value: 0` collateral posted) and its matching repay ran against the live pool: [`0x04dae5…fd123`](https://coston2-explorer.flare.network/tx/0x04dae53a9a2d1cc3e8113f27ff0a152fb4bc6d51615e3f7caca6fe20f26fd123) / [`0x9d27c4…2dda`](https://coston2-explorer.flare.network/tx/0x9d27c46d924dd1fef63d2018d560888cb9510ccf352cf976bb73ec0e62edfdaa). The pool holds real FXRP (~49), priced by the live FTSOv2 feed. `VouchCreditLine` verifies every signature on-chain and refuses a tampered rule build with a named revert — `unattested underwriter` — reproducible read-only (`make verify`, line 3). The rule engine is deterministic and byte-for-byte identical between the Go and TypeScript implementations (`make verify`, line 1). All three contracts are source-verified on the explorer.
+- **Simulated — exactly one thing, by engineering decision.** The hardware attestation step. Flare's own scaffold supports `SIMULATED_TEE=true` for exactly this purpose. The real end-to-end FCC/FTDC dispatch path is currently blocked by an upstream availability-check timeout (`/action/result` returns 404 after a successful dispatch) — this affects the provider side, not our code, and multiple teams building on FCC hit the same issue during this event. Rather than block on it, we built the only path demonstrable under these conditions: underwriting results come from a same-mechanism fallback (`extension/tools/cmd/mock-tee`, ported to `frontend/lib/rules.ts` + `frontend/lib/sign.ts` for the deployed app) — identical rule engine, identical signature scheme, judged identically by the on-chain hash-gate. `VouchCreditLine` cannot tell the difference by design — it judges WHO signed, never HOW the result arrived. When FCC dispatch is reachable, the switch is a config diff, not a refactor. We documented this boundary instead of hiding it, and the UI labels it explicitly wherever it's relevant.
+- **Curated.** The demo data source (`extension/demo-data/personas.json`) is three curated financial histories, not a real bank connection. Labeled as such in the UI.
+
+## Verify it yourself
+
+One command, three lines, each MATCH / NO MATCH — runs from a fresh clone with no `.env`, using only public endpoints (requires `go`, `cast` from Foundry, `curl`, `python3`):
+
+```
+$ make verify
+vouch verify — app: https://vouch-flare.vercel.app · chain: Coston2
+
+MATCH     rule equivalence  Go engine == deployed app for all 3 personas (rule v1): thin-file-freelancer=$2088  salaried-employee=$6872  overindebted=$0
+MATCH     signer binding    app signs as 0xc78e8d01e38149f0c7ac6018f0300aa636f32b83 == VouchCreditLine.attestedSigner() on Coston2
+MATCH     reject proof      tampered-build signature reverts: "unattested underwriter"
+
+All 3 checks MATCH — what the demo shows is what the chain enforces.
+```
+
+Details and the reasoning for what this command deliberately does *not* verify (the Go image hash): [`extension/README.md`](extension/README.md#verify-it-yourself).
+
+## AI usage disclosure
 
 This project was built with AI-assisted development (Claude Code). Spec and process artifacts live in a separate private workspace; this repository is the extracted product.
 
