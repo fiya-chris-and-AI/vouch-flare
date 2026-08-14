@@ -8,7 +8,7 @@ is the working source until that rewrite happens.
 |---|---|---|---|
 | `VouchCreditLine` | `0xe14163ef340D9D94A04f7F6e5503149564Baf118` | ✅ | `attestedSigner` = mock-tee key `0xc78E8d01E38149F0c7aC6018f0300aa636F32b83` (F12 Plan B path; rotate via `setAttestedSigner` once the real FCC/FTDC dispatch path is unblocked) |
 | `VouchPool` | `0xB2B8de163C83D31CfE0d95C7de4cB715625e0DC2` | ✅ | Seeded with 9.000000 test-FXRP. Live borrow (2 FXRP) + repay verified on-chain: borrow tx `0x79c60aeb4cc8c76a2006e52cd1404c9537134697a6df5c691a668f71c5e40342`, repay tx `0x2d12843fec7f812fdd760da581735ac64d40e69544bdbd669fd2333714f47497` |
-| `InstructionSender` (ex-HelloWorld) | `0xE75Fb1bd27b46E4E0500440B52D8498eC7000066` | — | Registered extension ID `66179` on `TeeExtensionRegistry`; real FCC dispatch path blocked by upstream FTDC 404s as of 2026-08-13 19:06 CEST (see `.academy/m0_diagnostics.log`), demo path uses mock-tee instead |
+| `InstructionSender` (ex-HelloWorld) | `0xE75Fb1bd27b46E4E0500440B52D8498eC7000066` | ✅ (verified 2026-08-14T01:06:25Z, source-matched as `VouchInstructionSender`, solc 0.8.35) | Registered extension ID `66179` on `TeeExtensionRegistry`; real FCC dispatch path blocked by an upstream FTDC availability-check issue, demo path uses mock-tee instead |
 | FXRP (`FTestXRP`) | `0x0b6a3645c240605887a5532109323a3e12273dc7` | (pre-existing testnet token) | 6 decimals |
 | FtsoV2 | `0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d` | (pre-existing Flare periphery) | XRP/USD feed id `0x015852502f55534400000000000000000000000000`, live-checked at $1.005/XRP on 2026-08-13 |
 

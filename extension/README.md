@@ -19,7 +19,7 @@ on a different network.
 |---|---|---|
 | `VouchCreditLine` | [`0xe14163ef340D9D94A04f7F6e5503149564Baf118`](https://coston2-explorer.flare.network/address/0xe14163ef340D9D94A04f7F6e5503149564Baf118) | ✅ |
 | `VouchPool` | [`0xB2B8de163C83D31CfE0d95C7de4cB715625e0DC2`](https://coston2-explorer.flare.network/address/0xB2B8de163C83D31CfE0d95C7de4cB715625e0DC2) | ✅ |
-| `InstructionSender` (ex-HelloWorld) | [`0xE75Fb1bd27b46E4E0500440B52D8498eC7000066`](https://coston2-explorer.flare.network/address/0xE75Fb1bd27b46E4E0500440B52D8498eC7000066) | Extension ID `66179` on `TeeExtensionRegistry` |
+| `InstructionSender` (ex-HelloWorld) | [`0xE75Fb1bd27b46E4E0500440B52D8498eC7000066`](https://coston2-explorer.flare.network/address/0xE75Fb1bd27b46E4E0500440B52D8498eC7000066) | ✅ · Extension ID `66179` on `TeeExtensionRegistry` |
 
 Full deployment log, tx hashes for a live borrow/repay cycle, and the
 mock-tee wallet-override fix: [`config/vouch-deployments.md`](config/vouch-deployments.md).
