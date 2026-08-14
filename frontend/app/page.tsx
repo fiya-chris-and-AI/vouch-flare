@@ -6,13 +6,14 @@ import {
   useAccount,
   useConnect,
   useDisconnect,
+  usePublicClient,
   useReadContract,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
 import { coston2 } from "@/lib/chains";
-import { friendlyError } from "@/lib/errors";
+import { extractRevertReason, friendlyError } from "@/lib/errors";
 import {
   ERC20_ABI,
   FXRP_ADDRESS,
@@ -104,6 +105,46 @@ export default function Page() {
   const [ohMoment, setOhMoment] = useState<{ reason: string } | null>(null);
 
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
+
+  // Every write in this app goes through here. Dry-run findings (CD Round 2):
+  // (C) a receipt with status "reverted" was being rendered as a plain
+  // success link — the UI must always check status before declaring success.
+  // (C.a) an out-of-gas revert happened under wagmi's own default gas
+  // estimate — estimate explicitly and buffer it, no hardcoded limit.
+  // (A) callers must await the mined receipt before refetching chain state,
+  // or panels show pre-transaction values for the ~block-time gap.
+  async function sendAndConfirm(
+    params: Parameters<typeof writeContractAsync>[0]
+  ): Promise<`0x${string}`> {
+    if (!publicClient) throw new Error("No RPC client available.");
+    const estimate = await publicClient.estimateContractGas({
+      ...(params as any),
+      account: address,
+    });
+    const gas = (estimate * 130n) / 100n;
+    const hash = await writeContractAsync({ ...params, gas } as any);
+    const txReceipt = await publicClient.waitForTransactionReceipt({ hash });
+    if (txReceipt.status === "reverted") {
+      // The receipt itself carries no reason — replay the same call to
+      // decode one, so a genuine contract rejection (e.g. the hash gate)
+      // still reads as "Rejected: <reason>", not a generic failure.
+      let revertReason: string | null = null;
+      try {
+        await publicClient.simulateContract({ ...(params as any), account: address });
+      } catch (simError) {
+        revertReason = extractRevertReason(simError);
+      }
+      const err = new Error(
+        revertReason
+          ? `Transaction reverted on-chain: ${revertReason} — view on explorer: ${explorerTx(hash)}`
+          : `Transaction reverted on-chain — view on explorer: ${explorerTx(hash)}`
+      ) as Error & { revertReason?: string };
+      if (revertReason) err.revertReason = revertReason;
+      throw err;
+    }
+    return hash;
+  }
 
   const { data: creditLine, refetch: refetchCreditLine } = useReadContract({
     address: VOUCH_CREDIT_LINE_ADDRESS,
@@ -150,7 +191,7 @@ export default function Page() {
       setStep("signed");
 
       setStep("submitting");
-      const hash = await writeContractAsync({
+      const hash = await sendAndConfirm({
         address: VOUCH_CREDIT_LINE_ADDRESS,
         abi: VOUCH_CREDIT_LINE_ABI,
         functionName: "submitResult",
@@ -185,7 +226,7 @@ export default function Page() {
       );
       if (!res.ok) throw new Error(await res.text());
       const data: UnderwriteResponse = await res.json();
-      await writeContractAsync({
+      await sendAndConfirm({
         address: VOUCH_CREDIT_LINE_ADDRESS,
         abi: VOUCH_CREDIT_LINE_ABI,
         functionName: "submitResult",
@@ -200,11 +241,16 @@ export default function Page() {
       // If this doesn't throw, something is badly wrong — the hash gate failed.
       setOhMoment({ reason: "ERROR: tampered result was accepted!" });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      // Only a decoded contract revert is a "Rejected" — the hash gate
+      // firing. An RPC/network/server failure is not the contract speaking
+      // and must never be worded as if it were (dry-run regression, CD
+      // Round 3): a Coston2 hiccup that reads like cryptographic proof is
+      // exactly the false claim the honesty boundary forbids.
+      const reason = extractRevertReason(e);
       setOhMoment({
-        reason: msg.includes("unattested underwriter")
-          ? "Rejected: unattested underwriter."
-          : `Rejected (${friendlyError(e)})`,
+        reason: reason
+          ? `Rejected: ${reason}.`
+          : `Request failed — please retry. (${friendlyError(e)})`,
       });
     } finally {
       setOhMomentBusy(false);
@@ -222,7 +268,7 @@ export default function Page() {
     setBorrowError(null);
     try {
       const amount = parseUnits(borrowInput, FXRP_DECIMALS);
-      const hash = await writeContractAsync({
+      const hash = await sendAndConfirm({
         address: VOUCH_POOL_ADDRESS,
         abi: VOUCH_POOL_ABI,
         functionName: "borrow",
@@ -237,19 +283,28 @@ export default function Page() {
     }
   }
 
+  const [repayPhase, setRepayPhase] = useState<"idle" | "approving" | "repaying">("idle");
+
   async function repay() {
     if (!borrowInput || borrowBusy) return;
     setBorrowBusy(true);
     setBorrowError(null);
     try {
       const amount = parseUnits(borrowInput, FXRP_DECIMALS);
-      await writeContractAsync({
+      // Dry-run finding (CD Round 2, race condition): repay was sent before
+      // the approve transaction was mined, so the allowance wasn't visible
+      // on-chain yet. Awaiting the mined receipt here (via sendAndConfirm)
+      // fixes it; the phase state makes the wait visible instead of a dead
+      // "Sending …" button.
+      setRepayPhase("approving");
+      await sendAndConfirm({
         address: FXRP_ADDRESS,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [VOUCH_POOL_ADDRESS, amount],
       });
-      const hash = await writeContractAsync({
+      setRepayPhase("repaying");
+      const hash = await sendAndConfirm({
         address: VOUCH_POOL_ADDRESS,
         abi: VOUCH_POOL_ABI,
         functionName: "repay",
@@ -261,6 +316,7 @@ export default function Page() {
       setBorrowError(friendlyError(e));
     } finally {
       setBorrowBusy(false);
+      setRepayPhase("idle");
     }
   }
 
@@ -442,7 +498,11 @@ export default function Page() {
             disabled={!borrowedFxrp || borrowedFxrp === 0n || !borrowInput || borrowBusy}
             onClick={repay}
           >
-            {borrowBusy ? "Sending …" : "Repay"}
+            {repayPhase === "approving"
+              ? "Approving …"
+              : repayPhase === "repaying"
+              ? "Repaying …"
+              : "Repay"}
           </button>
         </div>
         {borrowTx && (
