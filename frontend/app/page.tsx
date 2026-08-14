@@ -12,6 +12,7 @@ import {
   useWriteContract,
 } from "wagmi";
 import { coston2 } from "@/lib/chains";
+import { friendlyError } from "@/lib/errors";
 import {
   ERC20_ABI,
   FXRP_ADDRESS,
@@ -55,7 +56,36 @@ export default function Page() {
   const { address, isConnected, chainId } = useAccount();
   const { connect, connectors, error: connectError, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
-  const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
+  const { switchChainAsync, isPending: isSwitchingChain } = useSwitchChain();
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  // Dry-run finding (CD Round 1): on a cold profile MetaMask can answer
+  // switchChain with "Unrecognized chain ID" instead of the standard 4902 —
+  // fall back to adding Coston2 explicitly with the official RPC, then retry.
+  async function ensureCoston2() {
+    setSwitchError(null);
+    try {
+      await switchChainAsync({ chainId: coston2.id });
+    } catch {
+      try {
+        await (window as any).ethereum?.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0x72",
+              chainName: coston2.name,
+              nativeCurrency: coston2.nativeCurrency,
+              rpcUrls: [coston2.rpcUrls.default.http[0]],
+              blockExplorerUrls: [coston2.blockExplorers.default.url],
+            },
+          ],
+        });
+        await switchChainAsync({ chainId: coston2.id });
+      } catch (e) {
+        setSwitchError(friendlyError(e));
+      }
+    }
+  }
 
   const [hasInjectedWallet, setHasInjectedWallet] = useState(true);
   useEffect(() => {
@@ -136,7 +166,7 @@ export default function Page() {
       setStep("onchain");
       await refetchCreditLine();
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : String(e));
+      setErrorMsg(friendlyError(e));
       setStep("error");
     }
   }
@@ -174,7 +204,7 @@ export default function Page() {
       setOhMoment({
         reason: msg.includes("unattested underwriter")
           ? "Rejected: unattested underwriter."
-          : `Rejected (${msg.slice(0, 120)})`,
+          : `Rejected (${friendlyError(e)})`,
       });
     } finally {
       setOhMomentBusy(false);
@@ -201,7 +231,7 @@ export default function Page() {
       setBorrowTx(hash);
       await Promise.all([refetchBorrowed(), refetchBalance()]);
     } catch (e) {
-      setBorrowError(e instanceof Error ? e.message : String(e));
+      setBorrowError(friendlyError(e));
     } finally {
       setBorrowBusy(false);
     }
@@ -228,7 +258,7 @@ export default function Page() {
       setBorrowTx(hash);
       await Promise.all([refetchBorrowed(), refetchBalance()]);
     } catch (e) {
-      setBorrowError(e instanceof Error ? e.message : String(e));
+      setBorrowError(friendlyError(e));
     } finally {
       setBorrowBusy(false);
     }
@@ -242,13 +272,18 @@ export default function Page() {
           A guarantor that never burdens the chain — creditworthiness is
           computed inside a sealed enclave, not stored publicly.
         </p>
+        <p className="reality">
+          <strong>REAL:</strong> contracts, unsecured borrow, hash gate — every
+          transaction on the Coston2 explorer. <strong>SIMULATED:</strong> only
+          the hardware attestation root.
+        </p>
         {!isConnected ? (
           hasInjectedWallet ? (
             <>
               <button onClick={() => connect({ connector: connectors[0] })} disabled={isConnecting}>
                 {isConnecting ? "Connecting …" : "Connect wallet"}
               </button>
-              {connectError && <p className="error">{connectError.message}</p>}
+              {connectError && <p className="error">{friendlyError(connectError)}</p>}
             </>
           ) : (
             <p className="error">
@@ -262,9 +297,10 @@ export default function Page() {
         ) : wrongChain ? (
           <div className="wallet-row">
             <p className="error">Wrong network — please switch to Flare Testnet Coston2.</p>
-            <button onClick={() => switchChain({ chainId: coston2.id })} disabled={isSwitchingChain}>
+            <button onClick={ensureCoston2} disabled={isSwitchingChain}>
               {isSwitchingChain ? "Switching …" : "Switch to Coston2"}
             </button>
+            {switchError && <p className="error">{switchError}</p>}
           </div>
         ) : (
           <div className="wallet-row">
@@ -298,10 +334,12 @@ export default function Page() {
       <section className="card">
         <h2>2. Request a credit line</h2>
         <p className="hint">
-          TEE signature: <strong>simulated</strong> (F12 mock-tee, [MOCKED/CURATED]) —
-          the real FCC dispatch route is currently blocked by an upstream
-          FTDC infra issue (see README). The rule engine, hash gate, and
-          everything after it are real on Coston2.
+          The rule engine, signature check, hash gate and credit line are real
+          on Coston2 — run <code>make verify</code> to prove it yourself. Only
+          the TEE attestation root is <strong>simulated</strong> (F12 mock-tee,
+          [MOCKED/CURATED]): Flare&apos;s FCC dispatch route currently 404s
+          upstream, so we built the identical signature scheme on the only
+          path demonstrable today (see README).
         </p>
         <button
           disabled={!isConnected || step === "requesting" || step === "submitting"}
