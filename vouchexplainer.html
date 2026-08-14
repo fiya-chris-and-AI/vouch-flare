@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vouch — Unsecured FXRP Credit, Underwritten Inside a Sealed Enclave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04060b;
+    --deep:#080d18;
+    --panel:#0c1424;
+    --panel-2:#101b30;
+    --border:rgba(255,255,255,0.08);
+    --border-strong:rgba(255,255,255,0.16);
+    --orange:#f5820c;
+    --orange-soft:#ffb066;
+    --orange-dim:rgba(245,130,12,0.14);
+    --cyan:#6eeaff;
+    --cyan-soft:#a8f0ff;
+    --cyan-dim:rgba(110,234,255,0.12);
+    --text-1:#f4f6fb;
+    --text-2:#a6b0c4;
+    --text-3:#606a80;
+    --green:#3ddc97;
+    --green-dim:rgba(61,220,151,0.12);
+    --amber:#ffb020;
+    --amber-dim:rgba(255,176,32,0.12);
+    --slate:#8fa0c9;
+    --slate-dim:rgba(143,160,201,0.12);
+    --font-display:'Big Shoulders Display', 'Arial Narrow', sans-serif;
+    --font-body:'Sora', -apple-system, sans-serif;
+    --font-mono:'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--void);
+    color:var(--text-1);
+    font-family:var(--font-body);
+    line-height:1.6;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* film grain */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    pointer-events:none;
+    z-index:200;
+    opacity:0.035;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection{background:var(--orange); color:var(--void);}
+
+  a{color:inherit; text-decoration:none;}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
+
+  /* ---------- progress + nav ---------- */
+  #progress{
+    position:fixed; top:0; left:0; height:3px; width:0%;
+    background:linear-gradient(90deg, var(--cyan), var(--orange));
+    z-index:300; transition:width 0.1s linear;
+  }
+
+  nav.topnav{
+    position:fixed; top:0; left:0; right:0; z-index:290;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 32px;
+    background:rgba(4,6,11,0.78);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    transform:translateY(-100%);
+    transition:transform 0.35s ease;
+  }
+  nav.topnav.show{transform:translateY(0);}
+
+  .navmark{
+    font-family:var(--font-display); font-weight:800; font-size:22px;
+    letter-spacing:0.02em; display:flex; align-items:center; gap:8px;
+  }
+  .navmark .dot{width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px var(--cyan);}
+
+  .navlinks{display:flex; gap:26px; font-size:13px; color:var(--text-2); font-weight:600;}
+  .navlinks a{padding:6px 0; border-bottom:2px solid transparent; transition:color 0.2s, border-color 0.2s; white-space:nowrap;}
+  .navlinks a:hover, .navlinks a.active{color:var(--text-1); border-color:var(--orange);}
+  .navcta{display:flex; gap:10px;}
+  @media (max-width:900px){ .navlinks{display:none;} }
+
+  /* ---------- buttons / badges ---------- */
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:11px 20px; border-radius:999px; font-weight:700; font-size:13.5px;
+    border:1px solid var(--border-strong); transition:all 0.2s ease; cursor:pointer;
+  }
+  .btn-primary{background:var(--orange); color:#1a0d02; border-color:var(--orange);}
+  .btn-primary:hover{background:var(--orange-soft); box-shadow:0 0 24px rgba(245,130,12,0.45); transform:translateY(-1px);}
+  .btn-ghost{background:rgba(255,255,255,0.02); color:var(--text-1);}
+  .btn-ghost:hover{border-color:var(--cyan); box-shadow:0 0 18px rgba(110,234,255,0.18); transform:translateY(-1px);}
+
+  .tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:11.5px; font-weight:600;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--orange-soft);
+  }
+  .tag .bar{width:22px; height:1px; background:var(--orange-soft);}
+
+  /* ---------- hero ---------- */
+  header.hero{
+    position:relative; min-height:100vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:140px 32px 100px;
+    background:
+      radial-gradient(ellipse 900px 500px at 18% 30%, rgba(110,234,255,0.10), transparent 60%),
+      radial-gradient(ellipse 900px 600px at 85% 65%, rgba(245,130,12,0.10), transparent 60%),
+      linear-gradient(180deg, var(--void) 0%, var(--deep) 60%, var(--void) 100%);
+    overflow:hidden;
+  }
+
+  .hero-inner{max-width:1120px; margin:0 auto; width:100%; position:relative; z-index:2;}
+
+  .hero-kicker{margin-bottom:26px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .badge-time{
+    font-family:var(--font-mono); font-size:11px; color:var(--text-3);
+    border:1px solid var(--border); padding:4px 10px; border-radius:999px;
+    letter-spacing:0.06em;
+  }
+
+  h1.title{
+    font-family:var(--font-display); font-weight:900;
+    font-size:clamp(64px, 13vw, 156px);
+    line-height:0.86; letter-spacing:-0.01em;
+    color:var(--text-1);
+    text-transform:uppercase;
+    margin-bottom:22px;
+    background:linear-gradient(180deg, #ffffff 0%, #d9e2f2 55%, #9fb3d6 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  p.subtitle{
+    font-size:clamp(18px, 2.4vw, 26px); font-weight:600; color:var(--text-1);
+    max-width:720px; margin-bottom:18px; letter-spacing:-0.01em;
+  }
+
+  p.lede{
+    font-size:16.5px; color:var(--text-2); max-width:600px; margin-bottom:40px;
+  }
+  p.lede b{color:var(--cyan-soft); font-weight:600;}
+
+  .hero-ctas{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:70px;}
+
+  /* enclave -> network visual */
+  .hero-visual{
+    position:relative; height:220px; width:100%;
+    display:flex; align-items:center; margin-top:20px;
+  }
+  .enclave{
+    position:relative; width:120px; height:160px; flex-shrink:0; z-index:3;
+  }
+  .enclave-body{
+    position:absolute; inset:0;
+    background:linear-gradient(160deg, #0d1728 0%, #060a12 70%);
+    border-radius:34px;
+    border:1px solid rgba(110,234,255,0.35);
+    box-shadow:
+      0 0 40px rgba(110,234,255,0.25),
+      inset 0 0 30px rgba(110,234,255,0.08);
+  }
+  .enclave-seam{
+    position:absolute; left:50%; top:8%; bottom:8%; width:2px; transform:translateX(-50%);
+    background:linear-gradient(180deg, transparent, var(--cyan-soft), transparent);
+    box-shadow:0 0 10px var(--cyan-soft);
+    opacity:0.85;
+  }
+  .enclave-ring{
+    position:absolute; right:-4px; top:50%; transform:translateY(-50%);
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid var(--cyan-soft);
+    box-shadow:0 0 14px var(--cyan-soft);
+  }
+  .enclave-band{
+    position:absolute; left:14px; right:14px; height:1px; background:rgba(110,234,255,0.3);
+  }
+  .enclave-band.b1{top:22%;} .enclave-band.b2{bottom:22%;}
+
+  .beam{
+    flex:1; height:2px; position:relative; margin:0 -2px;
+    background:linear-gradient(90deg, var(--cyan-soft) 0%, rgba(255,255,255,0.9) 35%, var(--orange-soft) 100%);
+    box-shadow:0 0 16px rgba(255,255,255,0.5);
+    z-index:2;
+  }
+  .beam::after{
+    content:""; position:absolute; top:50%; left:0; width:14px; height:14px; border-radius:50%;
+    background:#fff; transform:translateY(-50%); box-shadow:0 0 18px #fff, 0 0 40px var(--cyan-soft);
+    animation:travel 3.2s ease-in-out infinite;
+  }
+  @keyframes travel{
+    0%{left:0; opacity:0;} 8%{opacity:1;} 92%{opacity:1;} 100%{left:calc(100% - 14px); opacity:0;}
+  }
+
+  .network{position:relative; width:340px; height:220px; flex-shrink:0;}
+  .network svg{width:100%; height:100%; overflow:visible;}
+  .network circle.node{filter:drop-shadow(0 0 6px rgba(245,130,12,0.8));}
+  .network circle.core{filter:drop-shadow(0 0 14px rgba(245,130,12,1));}
+
+  @media (max-width:860px){
+    .hero-visual{display:none;}
+  }
+
+  .scroll-cue{
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.18em;
+    color:var(--text-3); text-transform:uppercase;
+  }
+  .scroll-cue .line{width:1px; height:34px; background:linear-gradient(180deg, var(--text-3), transparent); animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:0.3;} 50%{opacity:1;}}
+
+  /* ---------- sections generic ---------- */
+  section{padding:120px 0; position:relative;}
+  section.tight{padding:90px 0;}
+
+  .eyebrow{margin-bottom:16px;}
+  h2.h-title{
+    font-family:var(--font-display); font-weight:800; text-transform:uppercase;
+    font-size:clamp(36px, 6vw, 64px); line-height:0.95; letter-spacing:-0.005em;
+    margin-bottom:20px; max-width:820px;
+  }
+  p.h-sub{font-size:17px; color:var(--text-2); max-width:640px; margin-bottom:56px;}
+
+  .reveal{opacity:0; transform:translateY(28px); transition:opacity 0.7s ease, transform 0.7s ease;}
+  .reveal.in{opacity:1; transform:translateY(0);}
+
+  /* ---------- TLDR ---------- */
+  #tldr{background:linear-gradient(180deg, var(--void), var(--deep));}
+  .tldr-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:44px;}
+  @media (max-width:900px){.tldr-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.tldr-grid{grid-template-columns:1fr;}}
+
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:16px;
+    padding:26px 22px; position:relative; overflow:hidden;
+    transition:transform 0.25s ease, border-color 0.25s ease;
+  }
+  .stat-card:hover{transform:translateY(-4px); border-color:var(--border-strong);}
+  .stat-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, var(--cyan), var(--orange));
+  }
+  .stat-num{font-family:var(--font-display); font-weight:800; font-size:34px; color:var(--text-1); margin-bottom:10px; letter-spacing:-0.01em;}
+  .stat-label{font-size:13.5px; color:var(--text-2); line-height:1.5;}
+
+  .tldr-note{
+    border-left:2px solid var(--orange); padding:6px 0 6px 22px; color:var(--text-2); font-size:15.5px; max-width:760px;
+  }
+  .tldr-note b{color:var(--text-1);}
+
+  /* ---------- problem ---------- */
+  #problem{background:var(--deep);}
+  .compare{display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:10px;}
+  @media (max-width:760px){.compare{grid-template-columns:1fr;}}
+  .compare-card{
+    border-radius:20px; padding:32px; border:1px solid var(--border);
+    background:var(--panel);
+  }
+  .compare-card.bad{border-color:rgba(255,255,255,0.08);}
+  .compare-card.good{border-color:rgba(110,234,255,0.28); background:linear-gradient(160deg, var(--panel-2), var(--panel));}
+  .compare-head{font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3); margin-bottom:18px;}
+  .compare-card.good .compare-head{color:var(--cyan-soft);}
+  .compare-fig{font-family:var(--font-display); font-weight:800; font-size:42px; margin-bottom:6px;}
+  .compare-fig small{font-family:var(--font-body); font-size:15px; font-weight:600; color:var(--text-3); display:block; margin-top:6px;}
+  .barviz{height:10px; border-radius:6px; background:rgba(255,255,255,0.06); margin:22px 0 18px; overflow:hidden; position:relative;}
+  .barviz > div{height:100%; border-radius:6px;}
+  .bar-collateral{width:100%; background:linear-gradient(90deg,#4a5470,#6b7896);}
+  .bar-borrow{width:66%; background:linear-gradient(90deg,var(--text-3),var(--text-2));}
+  .bar-vouch{width:0%; background:linear-gradient(90deg,var(--cyan),var(--orange));}
+  .compare-desc{font-size:14.5px; color:var(--text-2);}
+
+  /* ---------- how it works ---------- */
+  #how{background:var(--void);}
+  .steps{position:relative; margin-top:20px;}
+  .steps::before{
+    content:""; position:absolute; left:27px; top:10px; bottom:10px; width:1px;
+    background:linear-gradient(180deg, var(--cyan), var(--orange));
+    opacity:0.35;
+  }
+  @media (max-width:700px){.steps::before{left:23px;}}
+
+  .step{display:grid; grid-template-columns:56px 1fr; gap:22px; padding:26px 0; position:relative;}
+  @media (max-width:700px){.step{grid-template-columns:46px 1fr;}}
+  .step-num{
+    width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:22px;
+    background:var(--panel); border:1px solid var(--border-strong); position:relative; z-index:2;
+  }
+  @media (max-width:700px){.step-num{width:46px; height:46px; font-size:18px;}}
+  .step:nth-child(odd) .step-num{color:var(--cyan-soft); box-shadow:0 0 20px rgba(110,234,255,0.15);}
+  .step:nth-child(even) .step-num{color:var(--orange-soft); box-shadow:0 0 20px rgba(245,130,12,0.15);}
+  .step-title{font-weight:700; font-size:18.5px; margin-bottom:8px; color:var(--text-1);}
+  .step-desc{font-size:15px; color:var(--text-2); max-width:640px;}
+  .step-desc code{font-family:var(--font-mono); font-size:0.88em; color:var(--cyan-soft); background:rgba(110,234,255,0.08); padding:1px 6px; border-radius:4px;}
+
+  /* ---------- reality check ---------- */
+  #reality{background:linear-gradient(180deg, var(--deep), var(--void));}
+  .reality-grid{display:grid; grid-template-columns:1.1fr 1fr 0.9fr; gap:20px; align-items:start;}
+  @media (max-width:940px){.reality-grid{grid-template-columns:1fr;}}
+
+  .rcard{border-radius:18px; padding:28px; border:1px solid var(--border); background:var(--panel);}
+  .rcard-head{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+  .rdot{width:10px; height:10px; border-radius:50%;}
+  .rcard-title{font-family:var(--font-display); font-weight:800; font-size:20px; letter-spacing:0.02em; text-transform:uppercase;}
+  .rcard.real{border-color:rgba(61,220,151,0.28);}
+  .rcard.real .rdot{background:var(--green); box-shadow:0 0 10px var(--green);}
+  .rcard.real .rcard-title{color:var(--green);}
+  .rcard.sim{border-color:rgba(255,176,32,0.3);}
+  .rcard.sim .rdot{background:var(--amber); box-shadow:0 0 10px var(--amber);}
+  .rcard.sim .rcard-title{color:var(--amber);}
+  .rcard.cur{border-color:rgba(143,160,201,0.28);}
+  .rcard.cur .rdot{background:var(--slate); box-shadow:0 0 10px var(--slate);}
+  .rcard.cur .rcard-title{color:var(--slate);}
+
+  .rlist{list-style:none; display:flex; flex-direction:column; gap:14px;}
+  .rlist li{font-size:14.5px; color:var(--text-2); padding-left:18px; position:relative;}
+  .rlist li::before{content:"—"; position:absolute; left:0; color:var(--text-3);}
+  .rlist code{font-family:var(--font-mono); font-size:0.85em; color:var(--text-1); background:rgba(255,255,255,0.06); padding:1px 5px; border-radius:4px;}
+
+  .sim-note{
+    margin-top:16px; padding-top:16px; border-top:1px solid var(--border);
+    font-size:13.5px; color:var(--text-3); line-height:1.6;
+  }
+
+  /* ---------- verify ---------- */
+  #verify{background:var(--void);}
+  .terminal{
+    background:#050810; border:1px solid var(--border-strong); border-radius:14px;
+    overflow:hidden; box-shadow:0 30px 60px -20px rgba(0,0,0,0.6);
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:8px; padding:14px 18px;
+    background:rgba(255,255,255,0.03); border-bottom:1px solid var(--border);
+  }
+  .term-dot{width:10px; height:10px; border-radius:50%;}
+  .term-bar span:nth-child(1){background:#ff5f57;} .term-bar span:nth-child(2){background:#febc2e;} .term-bar span:nth-child(3){background:#28c840;}
+  .term-title{margin-left:12px; font-family:var(--font-mono); font-size:12px; color:var(--text-3);}
+  .term-body{padding:26px 24px; font-family:var(--font-mono); font-size:13px; line-height:1.85; overflow-x:auto; white-space:pre-wrap; word-break:break-word;}
+  .term-body .prompt{color:var(--text-3);}
+  .term-body .cmd{color:var(--text-1);}
+  .term-body .head{color:var(--text-3); margin:6px 0 14px; display:block;}
+  .term-body .match{color:var(--green); font-weight:700;}
+  .term-body .label{color:var(--cyan-soft);}
+  .term-body .dim{color:var(--text-2);}
+  .term-body .final{color:var(--orange-soft); font-weight:700; display:block; margin-top:14px;}
+  .verify-caption{margin-top:18px; font-size:13.5px; color:var(--text-3);}
+  .verify-caption code{font-family:var(--font-mono); color:var(--text-2); background:rgba(255,255,255,0.05); padding:1px 6px; border-radius:4px;}
+
+  /* ---------- contracts ---------- */
+  #contracts{background:var(--deep);}
+  .table-scroll{overflow-x:auto; border-radius:14px;}
+  .ctable{width:100%; min-width:560px; border-collapse:collapse; border:1px solid var(--border); border-radius:14px; overflow:hidden;}
+  .ctable th{
+    text-align:left; font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--text-3); padding:14px 18px; background:var(--panel); border-bottom:1px solid var(--border);
+  }
+  .ctable td{padding:16px 18px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle;}
+  .ctable tr:last-child td{border-bottom:none;}
+  .ctable tbody tr{transition:background 0.2s ease;}
+  .ctable tbody tr:hover{background:rgba(255,255,255,0.02);}
+  .ctable .addr{font-family:var(--font-mono); font-size:12.5px; color:var(--cyan-soft); word-break:break-all;}
+  .ctable .cname{font-weight:700; color:var(--text-1);}
+  .ctable .cnote{display:block; font-size:12px; color:var(--text-3); margin-top:3px; font-weight:400;}
+  .check{color:var(--green); font-weight:700; font-size:13px;}
+  .chainbadge{
+    display:inline-flex; gap:8px; align-items:center; font-family:var(--font-mono); font-size:12px;
+    color:var(--text-2); border:1px solid var(--border); padding:6px 12px; border-radius:999px; margin-bottom:28px;
+  }
+  .chainbadge .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green);}
+
+  /* ---------- closing ---------- */
+  #closing{
+    background:
+      radial-gradient(ellipse 700px 400px at 80% 20%, rgba(245,130,12,0.12), transparent 60%),
+      radial-gradient(ellipse 700px 400px at 20% 80%, rgba(110,234,255,0.10), transparent 60%),
+      var(--void);
+    text-align:left; padding:130px 0 80px;
+  }
+  #closing p.h-sub{max-width:700px;}
+  .closing-ctas{display:flex; gap:14px; flex-wrap:wrap; margin:34px 0 60px;}
+  .disclosure{
+    border-top:1px solid var(--border); padding-top:28px; font-size:13.5px; color:var(--text-3); max-width:760px; line-height:1.8;
+  }
+  .disclosure b{color:var(--text-2);}
+
+  footer{
+    padding:36px 32px; border-top:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;
+    font-size:12.5px; color:var(--text-3); font-family:var(--font-mono);
+  }
+
+  @media (max-width:640px){
+    .wrap{padding:0 20px;}
+    header.hero{padding:120px 20px 80px;}
+    section{padding:80px 0;}
+    .reality-grid{gap:16px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<nav class="topnav" id="topnav">
+  <div class="navmark"><span class="dot"></span>VOUCH</div>
+  <div class="navlinks">
+    <a href="#tldr">TL;DR</a>
+    <a href="#problem">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#reality">Reality check</a>
+    <a href="#verify">Verify</a>
+    <a href="#contracts">Contracts</a>
+  </div>
+  <div class="navcta">
+    <a class="btn btn-primary" href="https://vouch-flare.vercel.app" target="_blank" rel="noopener">Live App</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-kicker">
+      <span class="tag"><span class="bar"></span>Flare Summer Signal · Hackathon Submission</span>
+      <span class="badge-time">⏱ 60-second read for judges</span>
+    </div>
+    <h1 class="title">Vouch</h1>
+    <p class="subtitle">Unsecured credit lines, underwritten inside a sealed enclave.</p>
+    <p class="lede">A wallet's private financial history is scored inside a <b>hardware-sealed enclave</b> — never on-chain. Only the verdict becomes public: <b>address, credit limit, expiry</b>. That's enough for anyone to borrow FXRP with zero collateral.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://vouch-flare.vercel.app" target="_blank" rel="noopener">Open Live App ↗</a>
+      <a class="btn btn-ghost" href="https://github.com/fiya-chris-and-AI/vouch-flare" target="_blank" rel="noopener">View Repo ↗</a>
+      <a class="btn btn-ghost" href="#tldr">Read the TL;DR ↓</a>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="enclave">
+        <div class="enclave-body"></div>
+        <div class="enclave-band b1"></div>
+        <div class="enclave-band b2"></div>
+        <div class="enclave-seam"></div>
+        <div class="enclave-ring"></div>
+      </div>
+      <div class="beam"></div>
+      <div class="network">
+        <svg viewBox="0 0 340 220">
+          <g stroke="rgba(245,130,12,0.45)" stroke-width="1">
+            <line x1="20" y1="110" x2="120" y2="60"/>
+            <line x1="20" y1="110" x2="110" y2="150"/>
+            <line x1="120" y1="60" x2="220" y2="40"/>
+            <line x1="120" y1="60" x2="200" y2="110"/>
+            <line x1="110" y1="150" x2="200" y2="110"/>
+            <line x1="110" y1="150" x2="180" y2="190"/>
+            <line x1="200" y1="110" x2="220" y2="40"/>
+            <line x1="200" y1="110" x2="300" y2="80"/>
+            <line x1="200" y1="110" x2="290" y2="150"/>
+            <line x1="220" y1="40" x2="300" y2="80"/>
+            <line x1="180" y1="190" x2="290" y2="150"/>
+            <line x1="300" y1="80" x2="290" y2="150"/>
+          </g>
+          <circle class="core" cx="20" cy="110" r="7" fill="#ffb066"/>
+          <circle class="node" cx="120" cy="60" r="4.5" fill="#f5820c"/>
+          <circle class="node" cx="110" cy="150" r="4.5" fill="#f5820c"/>
+          <circle class="node" cx="220" cy="40" r="4" fill="#f5820c"/>
+          <circle class="node" cx="200" cy="110" r="5.5" fill="#f5820c"/>
+          <circle class="node" cx="180" cy="190" r="4" fill="#f5820c"/>
+          <circle class="node" cx="300" cy="80" r="4.5" fill="#f5820c"/>
+          <circle class="node" cx="290" cy="150" r="4" fill="#f5820c"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-cue"><span>Scroll</span><div class="line"></div></div>
+</header>
+
+<main>
+
+  <!-- TLDR -->
+  <section id="tldr">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>For the judges</div>
+      <h2 class="h-title">The 60-Second Version</h2>
+      <p class="h-sub">If you read nothing else, read this section. Everything below just backs these four facts up.</p>
+
+      <div class="tldr-grid">
+        <div class="stat-card">
+          <div class="stat-num">$0</div>
+          <div class="stat-label">collateral required to borrow — the "collateral" is a signed attestation from the enclave, not a deposit.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">3 numbers</div>
+          <div class="stat-label">ever touch the blockchain: wallet address, credit limit, expiry. The financial history behind them never does.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">Live</div>
+          <div class="stat-label">on Coston2 today — real contracts, a real borrow + repay transaction, a real FTSOv2 price feed.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">1 thing</div>
+          <div class="stat-label">is simulated (hardware dispatch, due to an upstream outage) — and it's the only thing, clearly labeled.</div>
+        </div>
+      </div>
+
+      <p class="tldr-note">In plain terms: <b>Vouch lets a crypto wallet prove it's creditworthy without exposing the data that proves it</b> — so lending protocols on Flare can offer real credit lines instead of forcing everyone to over-collateralize.</p>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>Why this needs to exist</div>
+      <h2 class="h-title">Blockchains Can't<br>Trust What They<br>Can't See</h2>
+      <p class="h-sub">Today, lending on Flare (and most of crypto) requires putting up more collateral than you're borrowing — because the chain has zero information about who's asking. Vouch gives it a verifiable answer without ever handing over the underlying data.</p>
+
+      <div class="compare">
+        <div class="compare-card bad">
+          <div class="compare-head">Today — XRPFi Lending</div>
+          <div class="compare-fig">$12,000<small>deposited as collateral</small></div>
+          <div class="barviz"><div class="bar-collateral"></div></div>
+          <div class="compare-fig" style="font-size:26px;">→ borrow only $8,000</div>
+          <p class="compare-desc">Overcollateralized by design. The protocol can't assess risk, so it eliminates risk by demanding more value locked up than it lends out.</p>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-head">With Vouch</div>
+          <div class="compare-fig">$0<small>deposited as collateral</small></div>
+          <div class="barviz"><div class="bar-vouch"></div></div>
+          <div class="compare-fig" style="font-size:26px;">→ borrow up to your credit limit</div>
+          <p class="compare-desc">The enclave's signed attestation stands in for collateral. Underwriting stays private; the result is public and verifiable by anyone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>Under the hood</div>
+      <h2 class="h-title">How It Works,<br>In Six Steps</h2>
+      <p class="h-sub">The entire loop — from private data to an on-chain loan — runs from a browser tab. No local process, no server the user has to trust blindly.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Your data stays in your browser</div>
+            <div class="step-desc">Persona / transaction-history data is held client-side and encrypted (<code>ECIES</code>) before it goes anywhere.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">An underwriting request is sent</div>
+            <div class="step-desc">The encrypted data is passed to the rule engine for scoring — not to a database, not to a company server.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">A sealed enclave scores it</div>
+            <div class="step-desc">A deterministic, versioned rule runs inside Flare Confidential Compute — a hardware-isolated environment nobody, including the operators, can see inside. The rule exists as byte-identical <code>Go</code> and <code>TypeScript</code> implementations.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-title">The enclave signs a verdict</div>
+            <div class="step-desc">Output is a signed result: <code>{ address, creditLimitUsd, ruleVersion, expiry, signature }</code> — nothing else leaves the enclave.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-title">The chain checks who signed it</div>
+            <div class="step-desc"><code>VouchCreditLine.submitResult()</code> verifies the signature against the currently attested signer on-chain, and rejects anything else with <code>"unattested underwriter"</code>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div>
+            <div class="step-title">The wallet borrows — no collateral</div>
+            <div class="step-desc"><code>VouchPool.borrow()</code> / <code>repay()</code> let the wallet draw FXRP up to its limit, USD-converted using a live FTSOv2 XRP/USD price feed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REALITY CHECK -->
+  <section id="reality">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>The part judges actually need</div>
+      <h2 class="h-title">Real vs. Simulated<br>vs. Curated</h2>
+      <p class="h-sub">Instead of asking you to take it on faith, the project draws this line explicitly — and the UI labels it, too. Here's the honest breakdown.</p>
+
+      <div class="reality-grid">
+        <div class="rcard real">
+          <div class="rcard-head"><span class="rdot"></span><span class="rcard-title">Real</span></div>
+          <ul class="rlist">
+            <li>A real unsecured borrow (zero collateral posted) and its matching repay ran on the live pool — <code>0x04dae5…fd123</code> / <code>0x9d27c4…2dda</code>.</li>
+            <li>The pool holds real FXRP (~49), priced by the live FTSOv2 feed.</li>
+            <li><code>VouchCreditLine</code> verifies every signature on-chain and rejects a tampered rule build with a named revert — <code>unattested underwriter</code>.</li>
+            <li>The rule engine is byte-for-byte identical between Go and TypeScript (<code>make verify</code> line 1).</li>
+            <li>All three contracts are source-verified on the Coston2 explorer.</li>
+          </ul>
+        </div>
+
+        <div class="rcard sim">
+          <div class="rcard-head"><span class="rdot"></span><span class="rcard-title">Simulated</span></div>
+          <ul class="rlist">
+            <li>Exactly one thing: the <b style="color:var(--text-1)">hardware attestation dispatch</b> step.</li>
+            <li>Flare's own dev scaffold supports <code>SIMULATED_TEE=true</code> for this purpose.</li>
+            <li>The real FCC/FTDC dispatch path is blocked by an upstream availability-check timeout — a provider-side issue several teams hit during the event, not a bug in this project's code.</li>
+          </ul>
+          <div class="sim-note">A same-mechanism mock-TEE fallback signs results with an identical rule engine and signature scheme. <code>VouchCreditLine</code> judges <b>who</b> signed — never <b>how</b> the result arrived — so switching to live dispatch is a config change, not a rebuild.</div>
+        </div>
+
+        <div class="rcard cur">
+          <div class="rcard-head"><span class="rdot"></span><span class="rcard-title">Curated</span></div>
+          <ul class="rlist">
+            <li>Demo data is three curated financial histories (<code>personas.json</code>) — not a live bank connection.</li>
+            <li>Clearly labeled as such inside the app UI, not hidden in fine print.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERIFY -->
+  <section id="verify">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>Don't take our word for it</div>
+      <h2 class="h-title">Verify It Yourself</h2>
+      <p class="h-sub">One command, three checks, each an independent MATCH / NO MATCH. Runs from a fresh clone — no <code style="font-family:var(--font-mono);">.env</code> file, public endpoints only.</p>
+
+      <div class="terminal">
+        <div class="term-bar"><span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span><span class="term-title">terminal — make verify</span></div>
+        <div class="term-body">
+<span class="prompt">$</span> <span class="cmd">make verify</span>
+<span class="head">vouch verify — app: https://vouch-flare.vercel.app · chain: Coston2</span>
+<span class="match">MATCH</span>  <span class="label">rule equivalence</span>  <span class="dim">Go engine == deployed app for all 3 personas (rule v1): thin-file-freelancer=$2088 salaried-employee=$6872 overindebted=$0</span>
+<span class="match">MATCH</span>  <span class="label">signer binding</span>    <span class="dim">app signs as 0xc78e8d01e38149f0c7ac6018f0300aa636f32b83 == VouchCreditLine.attestedSigner() on Coston2</span>
+<span class="match">MATCH</span>  <span class="label">reject proof</span>      <span class="dim">tampered-build signature reverts: "unattested underwriter"</span>
+<span class="final">All 3 checks MATCH — what the demo shows is what the chain enforces.</span>
+        </div>
+      </div>
+      <p class="verify-caption">Requires <code>go</code>, <code>cast</code> (Foundry), <code>curl</code>, <code>python3</code>. What this command deliberately does not verify (the Go image hash) is explained in <code>extension/README.md</code>.</p>
+    </div>
+  </section>
+
+  <!-- CONTRACTS -->
+  <section id="contracts">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>On-chain, checkable</div>
+      <h2 class="h-title">Deployed Contracts</h2>
+      <div class="chainbadge"><span class="dot"></span>Coston2 · chain id 114</div>
+
+      <div class="table-scroll">
+      <table class="ctable">
+        <thead><tr><th>Contract</th><th>Address</th><th>Verified</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="cname">VouchCreditLine<span class="cnote">Verifies signed underwriting results</span></td>
+            <td class="addr">0xe14163ef340D9D94A04f7F6e5503149564Baf118</td>
+            <td class="check">✓ Verified</td>
+          </tr>
+          <tr>
+            <td class="cname">VouchPool<span class="cnote">Unsecured FXRP borrow / repay</span></td>
+            <td class="addr">0xB2B8de163C83D31CfE0d95C7de4cB715625e0DC2</td>
+            <td class="check">✓ Verified</td>
+          </tr>
+          <tr>
+            <td class="cname">VouchInstructionSender<span class="cnote">FCC extension registration · Extension ID 66179</span></td>
+            <td class="addr">0xE75Fb1bd27b46E4E0500440B52D8498eC7000066</td>
+            <td class="check">✓ Verified</td>
+          </tr>
+          <tr>
+            <td class="cname">FXRP Token<span class="cnote">FTestXRP, 6 decimals</span></td>
+            <td class="addr">0x0b6a3645c240605887a5532109323a3e12273dc7</td>
+            <td class="check">—</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section id="closing">
+    <div class="wrap reveal">
+      <div class="eyebrow tag"><span class="bar"></span>Why it matters</div>
+      <h2 class="h-title">A Credit Line as<br>an Ingredient</h2>
+      <p class="h-sub">Vouch isn't a lending app — it's a primitive. Any protocol on Flare can plug into a wallet's credit limit without ever holding, storing, or being responsible for that wallet's financial data. Underwriting stays private; trust becomes portable.</p>
+
+      <div class="closing-ctas">
+        <a class="btn btn-primary" href="https://vouch-flare.vercel.app" target="_blank" rel="noopener">Open Live App ↗</a>
+        <a class="btn btn-ghost" href="https://github.com/fiya-chris-and-AI/vouch-flare" target="_blank" rel="noopener">View Repo ↗</a>
+      </div>
+
+      <div class="disclosure">
+        <b>AI usage disclosure:</b> built with AI-assisted development (Claude Code). Spec and process artifacts live in a separate private workspace; this repository is the extracted product, organized as a small number of logically separated commits rather than the original private history.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Vouch — Flare Summer Signal Hackathon · MIT License</span>
+  <span>Built on Coston2 · Underwritten by Flare Confidential Compute</span>
+</footer>
+
+<script>
+  // scroll progress + sticky nav reveal
+  const progress = document.getElementById('progress');
+  const topnav = document.getElementById('topnav');
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    progress.style.width = scrolled + '%';
+    topnav.classList.toggle('show', h.scrollTop > window.innerHeight * 0.6);
+  }, { passive: true });
+
+  // reveal on scroll
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // active nav link tracking
+  const sections = ['tldr','problem','how','reality','verify','contracts'].map(id => document.getElementById(id));
+  const links = document.querySelectorAll('.navlinks a');
+  const navIo = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const match = document.querySelector('.navlinks a[href="#' + entry.target.id + '"]');
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+  sections.forEach(s => s && navIo.observe(s));
+</script>
+
+</body>
+</html>
