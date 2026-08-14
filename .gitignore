@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+!.env.local.example
+*.key
+keystore/
+
+# Node
+node_modules/
+.next/
+.vercel/
+
+# Go
+extension/out/
+extension/cache/
+extension/results/
+
+# OS
+.DS_Store
+*.tsbuildinfo
