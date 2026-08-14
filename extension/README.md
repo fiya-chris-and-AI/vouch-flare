@@ -24,20 +24,20 @@ on a different network.
 Full deployment log, tx hashes for a live borrow/repay cycle, and the
 mock-tee wallet-override fix: [`config/vouch-deployments.md`](config/vouch-deployments.md).
 
-## Was echt ist und was simuliert/kuratiert ist
+## What is real and what is simulated/curated
 
-- **Regel-Engine, Hash-Gate, Kreditlinie, unterbesicherter Kredit, FTSOv2-Preis: `[ECHT]`.** Alle live auf Coston2, jede Transaktion im Explorer nachvollziehbar.
-- **TEE-Attestierung: `[SIMULIERT]`.** Die echte FCC/FTDC-Dispatch-Route ist an einem Infra-Problem blockiert, das außerhalb unserer Kontrolle liegt (der TEE-Proxy antwortet nach dem Dispatch konsistent mit 404 auf `/action/result`, siehe `.academy/m0_diagnostics.log`). Statt die Demo daran scheitern zu lassen, signiert `tools/cmd/mock-tee` (F12 Plan B) exakt dieselbe Nachrichtenstruktur mit dem exakt gleichen Prüfmechanismus — `VouchCreditLine` kann die beiden Pfade nicht unterscheiden, nur ob die Signatur zum aktuell attestierten Signer passt.
-- **Demo-Datenquelle: `[GEMOCKT/KURATIERT]`.** Die drei Personas (`demo-data/personas.json`) sind kuratierte, plausible Finanzhistorien — keine echte Bankverbindung.
-- Die Demo behauptet an keiner Stelle, dass etwas echt ist, das es nicht ist — jede simulierte/kuratierte Komponente ist im UI und in diesem README benannt.
+- **Rule engine, hash gate, credit line, unsecured borrow, FTSOv2 price: `[REAL]`.** All live on Coston2, every transaction traceable on the explorer.
+- **TEE attestation: `[SIMULATED]`.** The real FCC/FTDC dispatch route is blocked by an infrastructure issue outside our control (the TEE proxy consistently returns 404 on `/action/result` after dispatch, see `.academy/m0_diagnostics.log`). Rather than let the demo fail on that, `tools/cmd/mock-tee` (F12 Plan B) signs the exact same message structure with the exact same verification mechanism — `VouchCreditLine` cannot distinguish the two paths, only whether the signature matches the currently attested signer.
+- **Demo data source: `[MOCKED/CURATED]`.** The three personas (`demo-data/personas.json`) are curated, plausible financial histories — not a real bank connection.
+- The demo never claims something is real that it isn't — every simulated/curated component is labeled both in the UI and in this README.
 
 ---
 
-# Hello World Extension (Scaffold-Basis)
+# Hello World Extension (scaffold base)
 
-Dieses Repo ist von `flare-foundation/fce-extension-scaffold` abgeleitet. Der
-Rest dieser Datei ist die unveränderte Scaffold-Dokumentation — nützlich, um
-die Deployment-/Registrierungs-Tools und die Sprachauswahl zu verstehen.
+This repo is derived from `flare-foundation/fce-extension-scaffold`. The
+rest of this file is the unmodified scaffold documentation — useful for
+understanding the deployment/registration tooling and language selection.
 
 A working Hello World example for building Flare Confidential Compute (FCC) extensions. This repository demonstrates a complete, runnable extension with on-chain contracts, deployment tooling, and registration scripts — everything you need to understand how extensions work on the Flare TEE infrastructure.
 

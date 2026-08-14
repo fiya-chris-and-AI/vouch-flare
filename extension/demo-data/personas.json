@@ -1,5 +1,5 @@
 {
-  "_label": "Demo-Datenquelle — kuratierte Daten, keine echte Bankverbindung. [GEMOCKT/KURATIERT] per project_brief.md F8.",
+  "_label": "Demo data source — curated data, not a real bank connection. [MOCKED/CURATED] per project_brief.md F8.",
   "personas": [
     {
       "persona_id": "thin-file-freelancer",
@@ -41,7 +41,7 @@
     },
     {
       "persona_id": "salaried-employee",
-      "display_name": "Angestellte",
+      "display_name": "Salaried Employee",
       "wallet": "0x222222222222222222222222222222222222222b",
       "history_months": 24,
       "months": [
@@ -169,7 +169,7 @@
     },
     {
       "persona_id": "overindebted",
-      "display_name": "Überschuldet",
+      "display_name": "Overindebted",
       "wallet": "0x333333333333333333333333333333333333333c",
       "history_months": 12,
       "months": [
@@ -177,73 +177,73 @@
           "month": "2025-08",
           "inflow_usd": 1800,
           "outflow_usd": 2200,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2025-09",
           "inflow_usd": 1800,
           "outflow_usd": 2250,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2025-10",
           "inflow_usd": 1750,
           "outflow_usd": 2200,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2025-11",
           "inflow_usd": 1800,
           "outflow_usd": 2300,
-          "largest_creditor": "Kreditkarte B"
+          "largest_creditor": "Credit Card B"
         },
         {
           "month": "2025-12",
           "inflow_usd": 1900,
           "outflow_usd": 2500,
-          "largest_creditor": "Kreditkarte B"
+          "largest_creditor": "Credit Card B"
         },
         {
           "month": "2026-01",
           "inflow_usd": 1800,
           "outflow_usd": 2250,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2026-02",
           "inflow_usd": 1800,
           "outflow_usd": 2200,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2026-03",
           "inflow_usd": 1750,
           "outflow_usd": 2200,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2026-04",
           "inflow_usd": 1800,
           "outflow_usd": 2300,
-          "largest_creditor": "Kreditkarte B"
+          "largest_creditor": "Credit Card B"
         },
         {
           "month": "2026-05",
           "inflow_usd": 1800,
           "outflow_usd": 2250,
-          "largest_creditor": "Kreditkarte B"
+          "largest_creditor": "Credit Card B"
         },
         {
           "month": "2026-06",
           "inflow_usd": 1750,
           "outflow_usd": 2200,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         },
         {
           "month": "2026-07",
           "inflow_usd": 1800,
           "outflow_usd": 2250,
-          "largest_creditor": "Konsumentenkredit A"
+          "largest_creditor": "Consumer Loan A"
         }
       ]
     }

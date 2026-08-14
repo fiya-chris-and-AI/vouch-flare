@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 /// @title VouchCreditLine
 /// @author Vouch
-/// @notice The Bürge — accepts a signed underwriting result and, if it was
+/// @notice The guarantor — accepts a signed underwriting result and, if it was
 /// signed by the currently attested underwriter key, writes exactly three
 /// public numbers on-chain for the caller: limit, rule version, expiry.
 /// Rejects everything else with a named revert reason — the on-chain half

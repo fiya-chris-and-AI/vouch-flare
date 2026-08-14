@@ -168,13 +168,13 @@ export default function Page() {
         ],
       });
       // If this doesn't throw, something is badly wrong — the hash gate failed.
-      setOhMoment({ reason: "FEHLER: manipuliertes Ergebnis wurde akzeptiert!" });
+      setOhMoment({ reason: "ERROR: tampered result was accepted!" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOhMoment({
         reason: msg.includes("unattested underwriter")
-          ? "abgelehnt: unattested underwriter"
-          : `abgelehnt (${msg.slice(0, 120)})`,
+          ? "Rejected: unattested underwriter."
+          : `Rejected (${msg.slice(0, 120)})`,
       });
     } finally {
       setOhMomentBusy(false);
@@ -239,43 +239,43 @@ export default function Page() {
       <header>
         <h1>Vouch</h1>
         <p className="tagline">
-          Ein Bürge, der die Chain nicht belastet — Kreditwürdigkeit wird in
-          einer versiegelten Enklave berechnet, nicht öffentlich gespeichert.
+          A guarantor that never burdens the chain — creditworthiness is
+          computed inside a sealed enclave, not stored publicly.
         </p>
         {!isConnected ? (
           hasInjectedWallet ? (
             <>
               <button onClick={() => connect({ connector: connectors[0] })} disabled={isConnecting}>
-                {isConnecting ? "Verbinde …" : "Wallet verbinden"}
+                {isConnecting ? "Connecting …" : "Connect wallet"}
               </button>
               {connectError && <p className="error">{connectError.message}</p>}
             </>
           ) : (
             <p className="error">
-              Kein Wallet erkannt. Bitte{" "}
+              No wallet detected. Please install{" "}
               <a href="https://metamask.io/download" target="_blank" rel="noreferrer">
                 MetaMask
               </a>{" "}
-              installieren und die Seite neu laden.
+              and reload the page.
             </p>
           )
         ) : wrongChain ? (
           <div className="wallet-row">
-            <p className="error">Falsches Netzwerk — bitte zu Flare Testnet Coston2 wechseln.</p>
+            <p className="error">Wrong network — please switch to Flare Testnet Coston2.</p>
             <button onClick={() => switchChain({ chainId: coston2.id })} disabled={isSwitchingChain}>
-              {isSwitchingChain ? "Wechsle …" : "Zu Coston2 wechseln"}
+              {isSwitchingChain ? "Switching …" : "Switch to Coston2"}
             </button>
           </div>
         ) : (
           <div className="wallet-row">
             <code>{address}</code>
-            <button onClick={() => disconnect()}>Trennen</button>
+            <button onClick={() => disconnect()}>Disconnect</button>
           </div>
         )}
       </header>
 
       <section className="card">
-        <h2>1. Demo-Datenquelle</h2>
+        <h2>1. Demo data source</h2>
         <p className="badge">{DEMO_DATA_LABEL}</p>
         <div className="persona-picker">
           {personas.map((p) => (
@@ -290,40 +290,40 @@ export default function Page() {
           ))}
         </div>
         <p className="hint">
-          {persona.history_months} Monate Historie · Wallet für diese Anfrage:
-          Ihr verbundenes Wallet (nicht die Fixture-Adresse)
+          {persona.history_months} months of history · Wallet for this
+          request: your connected wallet (not the fixture address)
         </p>
       </section>
 
       <section className="card">
-        <h2>2. Kreditlinie anfragen</h2>
+        <h2>2. Request a credit line</h2>
         <p className="hint">
-          TEE-Signatur: <strong>simuliert</strong> (F12 mock-tee, [GEMOCKT/KURATIERT]) —
-          die echte FCC-Dispatch-Route ist derzeit durch einen FTDC-Infra-Fehler
-          blockiert (siehe README). Regel-Engine, Hash-Gate und alles danach sind
-          echt auf Coston2.
+          TEE signature: <strong>simulated</strong> (F12 mock-tee, [MOCKED/CURATED]) —
+          the real FCC dispatch route is currently blocked by an upstream
+          FTDC infra issue (see README). The rule engine, hash gate, and
+          everything after it are real on Coston2.
         </p>
         <button
           disabled={!isConnected || step === "requesting" || step === "submitting"}
           onClick={requestCreditLine}
         >
           {step === "requesting"
-            ? "Läuft in der Enklave …"
+            ? "Running in the enclave …"
             : step === "submitting"
-            ? "Wird on-chain geschrieben …"
-            : "Kreditlinie anfragen"}
+            ? "Writing on-chain …"
+            : "Request credit line"}
         </button>
         <ol className="state-machine">
-          <li className={step !== "idle" ? "done" : ""}>angefordert</li>
+          <li className={step !== "idle" ? "done" : ""}>requested</li>
           <li className={["signed", "submitting", "onchain"].includes(step) ? "done" : ""}>
-            in der Enklave
+            in the enclave
           </li>
-          <li className={["submitting", "onchain"].includes(step) ? "done" : ""}>signiert</li>
+          <li className={["submitting", "onchain"].includes(step) ? "done" : ""}>signed</li>
           <li className={step === "onchain" ? "done" : ""}>on-chain</li>
         </ol>
         {underwrite && (
           <p className="hint">
-            Ergebnis: {underwrite.reason} · ${underwrite.credit_limit_usd} Limit
+            Result: {underwrite.reason} · ${underwrite.credit_limit_usd} limit
           </p>
         )}
         {submitTxHash && (
@@ -332,7 +332,7 @@ export default function Page() {
             <a href={explorerTx(submitTxHash)} target="_blank" rel="noreferrer">
               {submitTxHash.slice(0, 14)}…
             </a>{" "}
-            {receipt.isLoading ? "(wartet auf Bestätigung)" : receipt.isSuccess ? "bestätigt" : ""}
+            {receipt.isLoading ? "(waiting for confirmation)" : receipt.isSuccess ? "confirmed" : ""}
           </p>
         )}
         {errorMsg && <p className="error">{errorMsg}</p>}
@@ -342,40 +342,40 @@ export default function Page() {
           onClick={triggerOhMoment}
           disabled={!isConnected || ohMomentBusy || step === "requesting" || step === "submitting"}
         >
-          {ohMomentBusy ? "Wird gesendet …" : "'Oh!'-Moment: manipulierte Regel-Version senden"}
+          {ohMomentBusy ? "Sending …" : "'Oh!' moment: send a tampered rule version"}
         </button>
         {ohMoment && <p className="oh-moment">{ohMoment.reason}</p>}
       </section>
 
       <section className="card">
-        <h2>3. Was die Chain weiß</h2>
+        <h2>3. What the chain knows</h2>
         <div className="chain-panel">
           <div>
-            <h3>Privat (nur lokal, nie gesendet)</h3>
+            <h3>Private (local only, never sent)</h3>
             <ul>
               {persona.months.slice(-3).map((m) => (
                 <li key={m.month}>
-                  {m.month}: Zufluss ${m.inflow_usd} · Abfluss ${m.outflow_usd}
+                  {m.month}: inflow ${m.inflow_usd} · outflow ${m.outflow_usd}
                 </li>
               ))}
-              <li>… {persona.months.length} Monate insgesamt</li>
+              <li>… {persona.months.length} months total</li>
             </ul>
           </div>
           <div>
-            <h3>Öffentlich on-chain (genau drei Felder)</h3>
+            <h3>Public on-chain (exactly three fields)</h3>
             <ul>
               <li>limitUsd: {hasLiveCreditLine ? `$${limitUsd}` : "—"}</li>
               <li>ruleVersion: {creditLine ? Number(creditLine[1]) : "—"}</li>
               <li>
                 expiry:{" "}
                 {creditLine && Number(creditLine[2]) > 0
-                  ? new Date(Number(creditLine[2]) * 1000).toLocaleDateString("de-DE")
+                  ? new Date(Number(creditLine[2]) * 1000).toLocaleDateString("en-US")
                   : "—"}
               </li>
             </ul>
             {address && (
               <a href={explorerAddress(VOUCH_CREDIT_LINE_ADDRESS)} target="_blank" rel="noreferrer">
-                VouchCreditLine im Explorer →
+                VouchCreditLine on the explorer →
               </a>
             )}
           </div>
@@ -383,28 +383,28 @@ export default function Page() {
       </section>
 
       <section className="card">
-        <h2>4. Unterbesichert leihen</h2>
+        <h2>4. Borrow unsecured</h2>
         <p className="hint">
-          Kreditlinie: {hasLiveCreditLine ? `$${limitUsd}` : "keine"} · Aktuell geliehen:{" "}
-          {borrowedFxrp ? formatUnits(borrowedFxrp, FXRP_DECIMALS) : "0"} FXRP · Ihr FXRP-Guthaben:{" "}
+          Credit line: {hasLiveCreditLine ? `$${limitUsd}` : "none"} · Currently borrowed:{" "}
+          {borrowedFxrp ? formatUnits(borrowedFxrp, FXRP_DECIMALS) : "0"} FXRP · Your FXRP balance:{" "}
           {fxrpBalance !== undefined ? formatUnits(fxrpBalance, FXRP_DECIMALS) : "…"}
         </p>
         <input
           value={borrowInput}
           onChange={(e) => setBorrowInput(e.target.value)}
-          placeholder="FXRP-Betrag"
+          placeholder="FXRP amount"
           disabled={!hasLiveCreditLine}
         />
         <div className="borrow-row">
           <button disabled={!hasLiveCreditLine || !borrowInput || borrowBusy} onClick={borrow}>
-            {borrowBusy ? "Wird gesendet …" : "Leihen (keine Sicherheit hinterlegt)"}
+            {borrowBusy ? "Sending …" : "Borrow (no collateral posted)"}
           </button>
           <button
             className="ghost"
             disabled={!borrowedFxrp || borrowedFxrp === 0n || !borrowInput || borrowBusy}
             onClick={repay}
           >
-            {borrowBusy ? "Wird gesendet …" : "Zurückzahlen"}
+            {borrowBusy ? "Sending …" : "Repay"}
           </button>
         </div>
         {borrowTx && (

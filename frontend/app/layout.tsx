@@ -3,14 +3,14 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Vouch — unterbesicherte FXRP-Kredite über Flare Confidential Compute",
+  title: "Vouch — unsecured FXRP credit lines via Flare Confidential Compute",
   description:
-    "Ein Bürge, der die Chain nicht belastet: Kreditwürdigkeit wird in einer versiegelten Enklave berechnet, nicht öffentlich gespeichert.",
+    "A guarantor that never burdens the chain: creditworthiness is computed inside a sealed enclave, not stored publicly.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="en">
       <body>
         <Providers>{children}</Providers>
       </body>

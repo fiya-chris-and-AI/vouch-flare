@@ -40,7 +40,7 @@ repay cycle after the topup (tx `0x04dae53a9a2d1cc3e8113f27ff0a152fb4bc6d51615e3
 **Still short of the full $2,000–$6,872 persona credit limits** — the faucet
 rate-limits FXRP per address, so fully funding those amounts isn't
 practical pre-demo. For the recorded take: draw a modest amount (≤40 FXRP)
-live on camera — the $ credit *limit* shown in the "Was die Chain weiß"
+live on camera — the $ credit *limit* shown in the "What the chain knows"
 panel is separately true and verifiable on-chain regardless of how much of
 it is actually drawn in the clip. If more headroom is needed later, repeat
 the faucet-sweep pattern above (a few more throwaway wallets).
@@ -51,7 +51,7 @@ the faucet-sweep pattern above (a few more throwaway wallets).
 pending-tx button guard — a failed borrow (e.g. insufficient pool
 liquidity, which was guaranteed before the fix above) failed completely
 silently on stage: no error text, no tx hash, nothing. Fixed: both now set
-a `borrowBusy` flag (disables the buttons and shows "Wird gesendet …"
+a `borrowBusy` flag (disables the buttons and shows "Sending …"
 while a tx is in flight) and catch errors into a visible `borrowError`
 message. Same guard added to the 'Oh!'-moment button, which previously
 could be double-clicked or fired concurrently with a credit-line request.
