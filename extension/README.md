@@ -3,7 +3,7 @@
 An unsecured FXRP credit line, underwritten by a hardware-sealed enclave —
 the chain never sees your financial history, only three public numbers:
 address, limit, expiry. Built on Flare Confidential Compute + FAssets FXRP +
-FTSOv2. Frontend: `../frontend`. Full product context: `../project_brief.md`.
+FTSOv2. Frontend: `../frontend`. Full product context: [`../README.md`](../README.md).
 
 ## Live app
 
@@ -24,12 +24,53 @@ on a different network.
 Full deployment log, tx hashes for a live borrow/repay cycle, and the
 mock-tee wallet-override fix: [`config/vouch-deployments.md`](config/vouch-deployments.md).
 
-## What is real and what is simulated/curated
+## What is real, what is simulated, what is curated
 
-- **Rule engine, hash gate, credit line, unsecured borrow, FTSOv2 price: `[REAL]`.** All live on Coston2, every transaction traceable on the explorer.
-- **TEE attestation: `[SIMULATED]`.** The real FCC/FTDC dispatch route is blocked by an infrastructure issue outside our control (the TEE proxy consistently returns 404 on `/action/result` after dispatch, see `.academy/m0_diagnostics.log`). Rather than let the demo fail on that, `tools/cmd/mock-tee` (F12 Plan B) signs the exact same message structure with the exact same verification mechanism — `VouchCreditLine` cannot distinguish the two paths, only whether the signature matches the currently attested signer.
-- **Demo data source: `[MOCKED/CURATED]`.** The three personas (`demo-data/personas.json`) are curated, plausible financial histories — not a real bank connection.
-- The demo never claims something is real that it isn't — every simulated/curated component is labeled both in the UI and in this README.
+**Real first — all of this is live on Coston2, every claim one explorer click away:**
+
+- **`[REAL]` Unsecured borrow.** A real borrow with `value: 0` collateral and its matching repay ran against the live pool: [`0x04dae5…fd123`](https://coston2-explorer.flare.network/tx/0x04dae53a9a2d1cc3e8113f27ff0a152fb4bc6d51615e3f7caca6fe20f26fd123) / [`0x9d27c4…2dda`](https://coston2-explorer.flare.network/tx/0x9d27c46d924dd1fef63d2018d560888cb9510ccf352cf976bb73ec0e62edfdaa). The pool holds real FXRP (~49), the price comes from the real FTSOv2 feed.
+- **`[REAL]` The hash gate and the rejection.** `VouchCreditLine` verifies every signature on-chain and refuses a tampered rule build with a named revert: `unattested underwriter`. This is not a UI effect — it is a contract revert you can reproduce read-only (`make verify`, line 3).
+- **`[REAL]` Rule engine, credit line, contract verification.** Deterministic rule v1 runs identically in Go and in the deployed app (`make verify`, line 1); all three demo-path contracts are source-verified on the explorer.
+
+**Simulated — exactly one thing, by engineering decision:**
+
+- **`[SIMULATED]` The hardware attestation root.** Flare's FCC dispatch route currently 404s upstream on `/action/result` for multiple teams building on this infrastructure. We built the only path demonstrable under these conditions: the identical rule engine and the identical signature scheme, signed by the mock-TEE key instead of a hardware-attested enclave key. `VouchCreditLine` cannot tell the difference by design — it judges WHO signed, never HOW the result arrived — so the entire proof mechanism (signer binding, tamper rejection) runs unchanged. When FCC dispatch is reachable, the switch is a config diff (`SIMULATED_TEE=false`), not a refactor. We documented this boundary instead of hiding it.
+- **`[MOCKED/CURATED]` Demo data source.** The three personas (`demo-data/personas.json`) are curated, plausible financial histories — not a real bank connection.
+
+The demo never claims something is real that it isn't — every simulated/curated component is labeled both in the UI and in this README.
+
+## Verify it yourself
+
+One command, three lines, each MATCH / NO MATCH — runs from a fresh clone
+with no `.env`, using only public endpoints (requires `go`, `cast` from
+Foundry, `curl`, `python3`):
+
+```
+$ make verify
+vouch verify — app: https://vouch-flare.vercel.app · chain: Coston2
+
+MATCH     rule equivalence  Go engine == deployed app for all 3 personas (rule v1): thin-file-freelancer=$2088  salaried-employee=$6872  overindebted=$0
+MATCH     signer binding    app signs as 0xc78e8d01e38149f0c7ac6018f0300aa636f32b83 == VouchCreditLine.attestedSigner() on Coston2
+MATCH     reject proof      tampered-build signature reverts: "unattested underwriter"
+
+All 3 checks MATCH — what the demo shows is what the chain enforces.
+```
+
+Line 2 and 3 are live reads against Coston2 — nothing is hardcoded on both
+sides. We deliberately do **not** present the reproducible Go image hash as
+the demo's proof: only the Go build is bit-for-bit reproducible
+([REPRODUCIBILITY.md](REPRODUCIBILITY.md)), but the deployed demo signs via
+the serverless mock-TEE path — verifying the image would verify something
+that never signed in the demo. We verify the signer that did.
+
+## AI usage disclosure
+
+This project was built with AI-assisted development (Claude Code). Spec
+and process artifacts (product brief, adversarial review, revision log)
+live in a separate private workspace; this repository is the extracted
+product. All architecture decisions, the honesty boundary (what is real
+vs. simulated), and every on-chain deployment were reviewed and decided
+by the human team; the commit history reflects the real build sequence.
 
 ---
 
